@@ -1,0 +1,101 @@
+#include <ESP8266WiFi.h>
+#include <WiFiUdp.h>
+
+// Clone WeMos D1 R1 board
+// Pinout Descriptions
+//https://github.com/esp8266/Arduino/blob/master/variants/d1_mini/pins_arduino.h
+//https://randomnerdtutorials.com/esp8266-pinout-reference-gpios/
+
+unsigned int port = 8000;      // local port to broadcast on
+WiFiUDP udp;
+IPAddress broadcast(255, 255, 255, 255);
+boolean connected = false;  // WiFi connected
+
+// buffers for receiving and sending data
+char packetBuffer[UDP_TX_PACKET_MAX_SIZE + 1]; //buffer to hold incoming packet,
+char  replyBuffer[] = "acknowledged\r\n";       // a string to send back
+
+
+boolean initializeWiFi() {
+  WiFi.mode(WIFI_STA);
+  WiFi.begin(ssid, pass);
+  if (WiFi.waitForConnectResult() != WL_CONNECTED) {
+    errorMsg("WiFi Failed ", false);
+    return false;
+  }
+  Serial.print("Connected! IP address: ");
+  Serial.println(WiFi.localIP());
+  Serial.printf("UDP broadcast on port %d\n", port);
+  udp.begin(port);
+
+  digitalWrite(LED_BUILTIN, HIGH);   // Turn the LED off (Note that HIGH is the voltage level
+  return true;
+}
+
+boolean initializeAccessPoint() {
+  //WiFi.mode(WIFI_STA);
+  //WiFi.begin(ssid, pass);
+  WiFi.softAP(apssid, appass);
+  IPAddress ip = WiFi.softAPIP();
+  //if (WiFi.waitForConnectResult() != WL_CONNECTED) {
+  //  errorMsg("WiFi Failed ", true);
+  //  return false;
+  //}
+  Serial.print("Access Point IP address: ");
+  Serial.println(ip);
+  Serial.printf("UDP broadcast on port %d\n", port);
+  udp.begin(port);
+
+  digitalWrite(LED_BUILTIN, HIGH);   // Turn the LED off (Note that HIGH is the voltage level
+  return true;
+}
+
+String imgFilename(int x) {
+  String builtString = String("");
+  if (x < 10) {
+    builtString += "000";
+  } else if (x < 100) {
+    builtString += "00";
+  } else if (x < 1000) {
+    builtString += "0";
+  }
+  builtString += String(x);
+  return builtString;
+}
+
+
+
+
+
+  if (strcmp (data, "R") == 0 || strcmp(data, "r") == 0)
+  {
+    if (connected) {
+      udp.beginPacket(broadcast, port); // subnet Broadcast IP and port
+      udp.write("R");
+      udp.endPacket();
+    } else {
+      printf("No WiFi connection %s\n", ssid);
+    }
+  }
+  else if (strcmp (data, "F") == 0 || strcmp(data, "f") == 0) // focus only
+  {
+    if (connected) {
+      udp.beginPacket(broadcast, port); // subnet Broadcast IP and port
+      udp.write("F");
+      udp.endPacket();
+    } else {
+      printf("No WiFi connection %s\n", ssid);
+    }
+  }
+  else if (strcmp (data, "C") == 0 || strcmp(data, "c") == 0)  // focus and shutter capture
+  {
+    if (connected) {
+      udp.beginPacket(broadcast, port); // subnet Broadcast IP and port
+      udp.write("C");
+      udp.write(imgFilename(imgNum).c_str());
+      imgNum++;
+      udp.endPacket();
+    } else {
+      printf("No WiFi connection %s\n", ssid);
+    }
+  }
